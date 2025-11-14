@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from sun_vector import *
 # ------------------------------
 # Quaternion utilities (scalar-first: w, x, y, z)
 # ------------------------------
@@ -213,9 +214,25 @@ BEGIN Attitude
             # f.write(f"{t:.1f} {w:.8f} {x:.8f} {y:.8f} {z:.8f}\n")
         f.write("END Attitude\n")
 
-# ------------------------------
-# Example usage
-# ------------------------------
+def generate_save_rot(t, n_roll, end_psi, face, dt):
+    S = sun_vector_icrf(t)
+    rolls = np.linspace(0.0, end_psi, n_roll, endpoint=False)
+    quats = []
+    quats_by_face = {}
+    for psi in rolls:
+        R = complete_attitude_columns_for_face(S, "+Z", psi)
+        q = rotmat_to_quat(R)
+        quats.append(q)
+    quats = np.vstack(quats)
+
+    df = pd.DataFrame(quats, columns=["q0 (scalar)", "q1", "q2", "q3"])
+    save_name = 'rotation_files/rot_quat_month={}_num_points={}_rot_angle={}_face={}_dt={}'.format(t.month, n_roll, end_psi, face, dt)
+    df.to_csv(save_name+".csv", index=False)
+    print("Saved to {}".format(save_name))
+
+    # Example: save +Z face sequence
+    save_stk_attitude(quats, n_theta, n_roll, dt=dt, filename=save_name+".a")
+    print("Saved attitude file: {}.a".format(save_name))
 if __name__ == "__main__":
     beta_deg = 50.0          # <-- example: angle between Sun and orbital plane
     incl_deg = 97.4959       # given
@@ -224,17 +241,14 @@ if __name__ == "__main__":
     n_roll = 36              # roll samples about the Sun vector
     faces = ("+X","-X","+Y","-Y","+Z","-Z")
 
-    quats_by_face, thetas, rolls = sun_pointing_quaternions(
-        beta_deg, incl_deg, raan_deg, n_theta, n_roll, faces
-    )
-    
-    
-    # Example: export +Z face
-    qZ = quats_by_face["+Z"]
-    df = pd.DataFrame(qZ, columns=["q0 (scalar)", "q1", "q2", "q3"])
-    df.to_csv("SunPointingQuaternions_Zface.csv", index=False)
-    print("Saved to SunPointingQuaternions_Zface.csv")
-
-    # Example: save +Z face sequence
-    save_stk_attitude(quats_by_face["+Z"], n_theta, n_roll, dt=10.0, filename="Zface_quaternions.a")
-    print("Saved attitude file: Zface_quaternions.a")
+    # quats_by_face, thetas, rolls = sun_pointing_quaternions(
+    #     beta_deg, incl_deg, raan_deg, n_theta, n_roll, faces
+    # )
+    t = datetime(2026, 8, 3, 12, 0, 0, tzinfo=timezone.utc)
+    for t in range(1, 12, 4):
+        t = datetime(2026, t, 3, 12, 0, 0, tzinfo=timezone.utc)
+        for n_roll in range(2, 50, 20):
+            for i in range(1, 8):
+                end_psi = i*(np.pi)/10
+                generate_save_rot(t, n_roll, end_psi, "+Z", 1.)
+        

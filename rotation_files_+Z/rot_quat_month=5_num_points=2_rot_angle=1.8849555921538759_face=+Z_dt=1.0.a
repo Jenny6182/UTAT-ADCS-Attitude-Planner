@@ -1,0 +1,20 @@
+stk.v.12.0
+
+BEGIN Attitude
+
+    NumberOfAttitudePoints		 2
+
+    BlockingFactor		 20
+
+    InterpolationOrder		 2
+
+    CentralBody		 Earth
+    
+    ScenarioEpoch		 3 Aug 2026 00:00:00.000000
+
+    CoordinateAxes		 ICRF
+    
+    AttitudeTimeQuaternions
+0.000 0.56593459 0.20949088 0.74780123 -0.27681209
+1.000 -0.59935828 0.07027119 -0.54062572 0.58613603
+END Attitude
